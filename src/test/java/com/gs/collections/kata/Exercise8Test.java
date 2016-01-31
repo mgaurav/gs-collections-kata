@@ -27,6 +27,7 @@ import com.gs.collections.api.list.MutableList;
 import com.gs.collections.api.map.MutableMap;
 import com.gs.collections.api.multimap.list.MutableListMultimap;
 import com.gs.collections.impl.bag.sorted.mutable.TreeBag;
+import com.gs.collections.impl.block.factory.Predicates;
 import com.gs.collections.impl.list.mutable.FastList;
 import com.gs.collections.impl.test.Verify;
 import org.junit.Assert;
@@ -45,7 +46,8 @@ public class Exercise8Test extends CompanyDomainForKata
         Function0<Double> zeroValueFactory = () -> 0.0;
         Function2<Double, Customer, Double> aggregator = (result, customer) -> result + customer.getTotalOrderValue();
 
-        MutableMap<String, Double> map = null;
+        MutableMap<String, Double> map = this.company.getCustomers().
+                aggregateBy(Customer.TO_CITY, zeroValueFactory, aggregator);
         Assert.assertEquals(2, map.size());
         Assert.assertEquals(446.25, map.get("London"), 0.0);
         Assert.assertEquals(857.0, map.get("Liphook"), 0.0);
@@ -62,7 +64,9 @@ public class Exercise8Test extends CompanyDomainForKata
         Function0<Double> zeroValueFactory = () -> 0.0;
         Function2<Double, LineItem, Double> aggregator = (result, lineItem) -> result + lineItem.getValue();
 
-        MutableMap<String, Double> map = null;
+        MutableMap<String, Double> map = this.company.getOrders().
+                flatCollect(Order::getLineItems).
+                aggregateBy(LineItem::getName, zeroValueFactory, aggregator);
         Verify.assertSize(12, map);
         Assert.assertEquals(100.0, map.get("shed"), 0.0);
         Assert.assertEquals(10.5, map.get("cup"), 0.0);
@@ -74,7 +78,12 @@ public class Exercise8Test extends CompanyDomainForKata
     @Test
     public void sortedOrders()
     {
-        MutableSortedBag<Double> orderedPrices = null;
+        MutableSortedBag<Double> orderedPrices = this.company
+                .getOrders()
+                .flatCollect(Order::getLineItems)
+                .select(i -> i.getValue() > 7.5)
+                .collect(LineItem::getValue)
+                .toSortedBag(Collections.reverseOrder());
 
         MutableSortedBag<Double> expectedPrices = TreeBag.newBagWith(
                 Collections.reverseOrder(), 500.0, 150.0, 120.0, 75.0, 50.0, 50.0, 12.5);
@@ -87,7 +96,17 @@ public class Exercise8Test extends CompanyDomainForKata
     @Test
     public void whoOrderedSaucers()
     {
-        MutableList<Customer> customersWithSaucers = null;
+        MutableList<Customer> customersWithSaucers = this.company
+                .getCustomers()
+                .select(
+                        Predicates.attributeAnySatisfy(
+                                Customer::getOrders,
+                                Predicates.attributeAnySatisfy(
+                                        Order::getLineItems,
+                                        Predicates.attributeEqual(LineItem::getName, "saucer")
+                                )
+                        )
+                );
         Verify.assertSize("customers with saucers", 2, customersWithSaucers);
     }
 
@@ -98,7 +117,7 @@ public class Exercise8Test extends CompanyDomainForKata
     public void ordersByCustomerUsingAsMap()
     {
         MutableMap<String, MutableList<Order>> customerNameToOrders =
-                this.company.getCustomers().toMap(null, null);
+                this.company.getCustomers().toMap(Customer::getName, Customer::getOrders);
 
         Assert.assertNotNull("customer name to orders", customerNameToOrders);
         Verify.assertSize("customer names", 3, customerNameToOrders);
@@ -113,7 +132,14 @@ public class Exercise8Test extends CompanyDomainForKata
     @Test
     public void mostExpensiveItem()
     {
-        MutableListMultimap<Double, Customer> multimap = null;
+        MutableListMultimap<Double, Customer> multimap = this.company.getCustomers()
+                .groupBy(customer ->
+                        customer
+                                .getOrders()
+                                .asLazy()
+                                .flatCollect(Order::getLineItems)
+                                .collect(LineItem::getValue)
+                                .max());
         Assert.assertEquals(3, multimap.size());
         Assert.assertEquals(2, multimap.keysView().size());
         Assert.assertEquals(

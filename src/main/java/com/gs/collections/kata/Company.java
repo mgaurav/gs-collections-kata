@@ -18,8 +18,11 @@ package com.gs.collections.kata;
 
 import com.gs.collections.api.block.predicate.Predicate;
 import com.gs.collections.api.list.MutableList;
+import com.gs.collections.impl.block.factory.Predicates;
 import com.gs.collections.impl.list.mutable.FastList;
 import org.junit.Assert;
+
+import java.util.List;
 
 /**
  * A company has a {@link MutableList} of {@link Customer}s.  It has an array of {@link Supplier}s, and a name.
@@ -30,7 +33,7 @@ public class Company
     private final MutableList<Customer> customers = FastList.newList();
 
     // suppliers are array based.
-    private Supplier[] suppliers = new Supplier[0];
+    private FastList<Supplier> suppliers = FastList.newList();
 
     public Company(String name)
     {
@@ -54,13 +57,7 @@ public class Company
 
     public MutableList<Order> getOrders()
     {
-        Assert.fail("Refactor this code to use GS Collections as part of Exercise 3");
-        MutableList<Order> orders = FastList.newList();
-        for (Customer customer : this.customers)
-        {
-            orders.addAll(customer.getOrders());
-        }
-        return orders;
+        return this.customers.flatCollect(Customer::getOrders);
     }
 
     public Customer getMostRecentCustomer()
@@ -73,13 +70,10 @@ public class Company
         // need to replace the current array of suppliers with another, larger array
         // Of course, normally one would not use an array.
 
-        final Supplier[] currentSuppliers = this.suppliers;
-        this.suppliers = new Supplier[currentSuppliers.length + 1];
-        System.arraycopy(currentSuppliers, 0, this.suppliers, 0, currentSuppliers.length);
-        this.suppliers[this.suppliers.length - 1] = supplier;
+        this.suppliers.add(supplier);
     }
 
-    public Supplier[] getSuppliers()
+    public FastList<Supplier> getSuppliers()
     {
         return this.suppliers;
     }
@@ -89,7 +83,6 @@ public class Company
         /**
          * Use a {@link Predicate} to find a {@link Customer} with the name given.
          */
-        Assert.fail("Implement this method as part of Exercise 2");
-        return null;
+        return this.customers.detect(Predicates.attributeEqual(Customer::getName, name));
     }
 }

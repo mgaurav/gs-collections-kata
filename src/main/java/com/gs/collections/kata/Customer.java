@@ -22,6 +22,7 @@ import java.util.List;
 import com.gs.collections.api.block.function.Function;
 import com.gs.collections.api.list.MutableList;
 import com.gs.collections.impl.block.function.AddFunction;
+import com.gs.collections.impl.factory.Lists;
 import com.gs.collections.impl.utility.ListIterate;
 import org.junit.Assert;
 
@@ -35,14 +36,14 @@ public class Customer
         return null;
     };
 
-    public static final Function<Customer, String> TO_CITY = null;
+    public static final Function<Customer, String> TO_CITY = Customer::getCity;
 
     public static final Function<Customer, Double> TO_TOTAL_ORDER_VALUE = Customer::getTotalOrderValue;
 
     private final String name;
     private final String city;
 
-    private final List<Order> orders = new ArrayList<>();
+    private final MutableList<Order> orders = Lists.mutable.empty();
 
     public Customer(String name, String city)
     {
@@ -60,7 +61,7 @@ public class Customer
         return this.name;
     }
 
-    public List<Order> getOrders()
+    public MutableList<Order> getOrders()
     {
         return this.orders;
     }
@@ -72,7 +73,7 @@ public class Customer
 
     public double getTotalOrderValue()
     {
-        MutableList<Double> orderValues = ListIterate.collect(this.orders, Order::getValue);
+        MutableList<Double> orderValues = this.orders.collect(Order.TO_VALUE);
         return orderValues.injectInto(0.0, AddFunction.DOUBLE_TO_DOUBLE);
     }
 }
